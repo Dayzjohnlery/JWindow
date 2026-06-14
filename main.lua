@@ -168,6 +168,14 @@ function Library:CreateWindow(config)
 		end
 	end
 
+	-- Destroy Window Function
+	function WindowInstance:Destroy()
+		if mainFrame then
+			mainFrame:Destroy()
+			elements = nil -- Clear element references from memory
+		end
+	end
+
 	return WindowInstance
 end
 
