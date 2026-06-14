@@ -16,6 +16,7 @@ end
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "JWindowGui"
 screenGui.ResetOnSpawn = false
+screenGui.DisplayOrder = 99999
 screenGui.Parent = playerGui
 
 -- Create Window Function
@@ -27,7 +28,7 @@ function Library:CreateWindow(config)
 	
 	-- Main Window Frame
 	local mainFrame = Instance.new("Frame")
-	mainFrame.Name = "MainWindow_" .. windowName
+	mainFrame.Name = "Window_" .. windowName
 	mainFrame.Size = UDim2.new(0, windowWidth, 0, headerHeight + padding)
 	mainFrame.Position = UDim2.new(0.5, -windowWidth/2, 0.5, -50)
 	mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
