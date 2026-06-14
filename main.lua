@@ -161,10 +161,15 @@ function Library:CreateWindow(config)
 		return textLine
 	end
 
-	-- Update Text Label Function
-	function WindowInstance:UpdateLabel(id, newText)
+	-- Update Text Label Function (with optional color update)
+	function WindowInstance:UpdateLabel(id, newText, textColor)
 		if elements[id] then
-			elements[id].Text = newText
+			if newText then
+				elements[id].Text = newText
+			end
+			if textColor then
+				elements[id].TextColor3 = textColor
+			end
 		else
 			warn("Label with ID '" .. tostring(id) .. "' does not exist in this window.")
 		end
