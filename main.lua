@@ -140,7 +140,7 @@ function Library:CreateWindow(config)
 	local elements = {}
 
 	-- Add Text Label Function
-	function WindowInstance:AddLabel(id, initialText)
+	function WindowInstance:AddLabel(id, initialText, textColor)
 		local textLine = Instance.new("TextLabel")
 		textLine.Name = id
 		-- Width fills window minus padding, Height automatically adjusts to text lengths/wrapping
@@ -148,7 +148,9 @@ function Library:CreateWindow(config)
 		textLine.AutomaticSize = Enum.AutomaticSize.Y 
 		textLine.BackgroundTransparency = 1
 		textLine.Text = initialText
-		textLine.TextColor3 = Color3.fromRGB(220, 220, 220)
+
+		textLine.TextColor3 = textColor or Color3.fromRGB(220, 220, 220)
+		
 		textLine.Font = Enum.Font.GothamMedium
 		textLine.TextSize = 18
 		textLine.TextXAlignment = Enum.TextXAlignment.Left
