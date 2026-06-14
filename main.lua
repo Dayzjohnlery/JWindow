@@ -150,7 +150,7 @@ function Library:CreateWindow(config)
 		textLine.Name = id
 		-- Width fills window minus padding, Height automatically adjusts to text lengths/wrapping
 		textLine.Size = UDim2.new(1, 0, 0, 0)
-		textLine.AutomaticSize = Enum.AutomaticSize.Y 
+		textLine.AutomaticSize = Enum.AutomaticSize.Y
 		textLine.BackgroundTransparency = 1
 		textLine.Text = initialText
 
