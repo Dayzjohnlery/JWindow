@@ -13,13 +13,10 @@ if oldGui then
 end
 
 -- Shared ScreenGui container for all windows created by this script
-local screenGui = playerGui:FindFirstChild("JWindowGui")
-if not screenGui then
-	screenGui = Instance.new("ScreenGui")
-	screenGui.Name = "JWindowGui"
-	screenGui.ResetOnSpawn = false
-	screenGui.Parent = playerGui
-end
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "JWindowGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
 
 -- Create Window Function
 function Library:CreateWindow(config)
