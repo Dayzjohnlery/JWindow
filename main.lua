@@ -7,6 +7,11 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+local oldGui = playerGui:FindFirstChild("JWindowGui")
+if oldGui then
+	oldGui:Destroy()
+end
+
 -- Shared ScreenGui container for all windows created by this script
 local screenGui = playerGui:FindFirstChild("JWindowGui")
 if not screenGui then
