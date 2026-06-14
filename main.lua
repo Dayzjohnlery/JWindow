@@ -32,7 +32,7 @@ function Library:CreateWindow(config)
 	mainFrame.Size = UDim2.new(0, windowWidth, 0, headerHeight + padding)
 	mainFrame.Position = UDim2.new(0.5, -windowWidth/2, 0.5, -50)
 	mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-	mainFrame.BackgroundTransparency = 0.3 -- Transparent background
+	mainFrame.BackgroundTransparency = 0.9 -- Transparent background
 	mainFrame.BorderSizePixel = 0
 	mainFrame.ClipsDescendants = true
 	mainFrame.Parent = screenGui
