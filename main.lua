@@ -3,23 +3,51 @@ local Library = {}
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local oldGui = playerGui:FindFirstChild("JWindowGui")
-if oldGui then
-	oldGui:Destroy()
+-- CONFIG SAVE/LOAD SYSTEM
+local configFileName = "JWindow_Positions.json"
+local windowPositions = {}
+
+-- Safely try to load existing config from workspace folder
+if isfile and readfile and isfile(configFileName) then
+	local success, decodedData = pcall(function()
+		return HttpService:JSONDecode(readfile(configFileName))
+	end)
+	
+	if success and type(decodedData) == "table" then
+		windowPositions = decodedData
+	end
 end
 
--- Shared ScreenGui container for all windows created by this script
+-- Helper function to save the config file
+local function savePositions()
+	if writefile then
+		local success, encodedData = pcall(function()
+			return HttpService:JSONEncode(windowPositions)
+		end)
+		
+		if success then
+			writefile(configFileName, encodedData)
+		end
+	end
+end
+
+local existingGui = playerGui:FindFirstChild("JWindowGui")
+if existingGui then
+	existingGui:Destroy()
+end
+
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "JWindowGui"
 screenGui.ResetOnSpawn = false
-screenGui.DisplayOrder = 99999
+screenGui.DisplayOrder = 99999 -- Forces it to the front
 screenGui.Parent = playerGui
 
--- Create Window Function
+-- CREATE WINDOW FUNCTION
 function Library:CreateWindow(config)
 	local windowName = config.Name or "Window"
 	local windowWidth = config.Width or 250
@@ -28,11 +56,19 @@ function Library:CreateWindow(config)
 	
 	-- Main Window Frame
 	local mainFrame = Instance.new("Frame")
-	mainFrame.Name = "Window_" .. windowName
+	mainFrame.Name = "MainWindow_" .. windowName
 	mainFrame.Size = UDim2.new(0, windowWidth, 0, headerHeight + padding)
-	mainFrame.Position = UDim2.new(0.5, -windowWidth/2, 0.5, -50)
+	
+	-- Determine starting position (Saved vs Default)
+	if windowPositions[windowName] then
+		local saved = windowPositions[windowName]
+		mainFrame.Position = UDim2.new(saved.XScale, saved.XOffset, saved.YScale, saved.YOffset)
+	else
+		mainFrame.Position = UDim2.new(0.5, -windowWidth/2, 0.5, -50) -- Default center
+	end
+	
 	mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-	mainFrame.BackgroundTransparency = 0.9 -- Transparent background
+	mainFrame.BackgroundTransparency = 0.8
 	mainFrame.BorderSizePixel = 0
 	mainFrame.ClipsDescendants = true
 	mainFrame.Parent = screenGui
@@ -41,7 +77,7 @@ function Library:CreateWindow(config)
 	uiCorner.CornerRadius = UDim.new(0, 8)
 	uiCorner.Parent = mainFrame
 
-	-- Header Bar (For Dragging)
+	-- Header Bar
 	local headerBar = Instance.new("Frame")
 	headerBar.Name = "Header"
 	headerBar.Size = UDim2.new(1, 0, 0, headerHeight)
@@ -87,13 +123,12 @@ function Library:CreateWindow(config)
 	listLayout.Padding = UDim.new(0, 8)
 	listLayout.Parent = contentContainer
 
-	-- Dynamic Height Handler 
+	-- Dynamic Height Handler
 	local isCollapsed = false
 	local expandedSize = mainFrame.Size
 	local collapsedSize = UDim2.new(0, windowWidth, 0, headerHeight)
 	local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 
-	-- Automatically scales the window length when text is added or changed
 	local function updateWindowHeight()
 		local contentHeight = listLayout.AbsoluteContentSize.Y
 		expandedSize = UDim2.new(0, windowWidth, 0, headerHeight + contentHeight + (padding * 2))
@@ -114,23 +149,37 @@ function Library:CreateWindow(config)
 		TweenService:Create(mainFrame, tweenInfo, {Size = targetSize}):Play()
 	end)
 
-	-- Dragging Logic (PC & Mobile)
+	-- Dragging & Saving Logic
 	local dragging, dragInput, dragStart, startPos
 	headerBar.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
 			dragStart = input.Position
 			startPos = mainFrame.Position
+			
 			input.Changed:Connect(function()
-				if input.UserInputState == Enum.UserInputState.End then dragging = false end
+				if input.UserInputState == Enum.UserInputState.End then 
+					dragging = false 
+					
+					-- SAVE THE POSITION WHEN DRAGGING ENDS
+					windowPositions[windowName] = {
+						XScale = mainFrame.Position.X.Scale,
+						XOffset = mainFrame.Position.X.Offset,
+						YScale = mainFrame.Position.Y.Scale,
+						YOffset = mainFrame.Position.Y.Offset
+					}
+					savePositions()
+				end
 			end)
 		end
 	end)
+	
 	headerBar.InputChanged:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
 			dragInput = input
 		end
 	end)
+	
 	UserInputService.InputChanged:Connect(function(input)
 		if input == dragInput and dragging then
 			local delta = input.Position - dragStart
@@ -146,25 +195,22 @@ function Library:CreateWindow(config)
 	function WindowInstance:AddLabel(id, initialText, textColor)
 		local textLine = Instance.new("TextLabel")
 		textLine.Name = id
-		-- Width fills window minus padding, Height automatically adjusts to text lengths/wrapping
 		textLine.Size = UDim2.new(1, 0, 0, 0)
 		textLine.AutomaticSize = Enum.AutomaticSize.Y
 		textLine.BackgroundTransparency = 1
 		textLine.Text = initialText
-
 		textLine.TextColor3 = textColor or Color3.fromRGB(220, 220, 220)
-		
 		textLine.Font = Enum.Font.GothamMedium
 		textLine.TextSize = 18
 		textLine.TextXAlignment = Enum.TextXAlignment.Left
-		textLine.TextWrapped = true -- Text wraps seamlessly inside your custom width
+		textLine.TextWrapped = true
 		textLine.Parent = contentContainer
 
 		elements[id] = textLine
 		return textLine
 	end
 
-	-- Update Text Label Function (with optional color update)
+	-- Update Text Label Function
 	function WindowInstance:UpdateLabel(id, newText, textColor)
 		if elements[id] then
 			if newText then
@@ -182,7 +228,7 @@ function Library:CreateWindow(config)
 	function WindowInstance:Destroy()
 		if mainFrame then
 			mainFrame:Destroy()
-			elements = nil -- Clear element references from memory
+			elements = nil
 		end
 	end
 
