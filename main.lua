@@ -12,7 +12,6 @@ local playerGui = player:WaitForChild("PlayerGui")
 local configFileName = "JWindow_Positions.json"
 local windowPositions = {}
 
--- Safely try to load existing config from workspace folder
 if isfile and readfile and isfile(configFileName) then
 	local success, decodedData = pcall(function()
 		return HttpService:JSONDecode(readfile(configFileName))
@@ -23,7 +22,6 @@ if isfile and readfile and isfile(configFileName) then
 	end
 end
 
--- Helper function to save the config file
 local function savePositions()
 	if writefile then
 		local success, encodedData = pcall(function()
@@ -44,31 +42,30 @@ end
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "JWindowGui"
 screenGui.ResetOnSpawn = false
-screenGui.DisplayOrder = 99999 -- Forces it to the front
+screenGui.DisplayOrder = 99999
 screenGui.Parent = playerGui
 
 -- CREATE WINDOW FUNCTION
 function Library:CreateWindow(config)
 	local windowName = config.Name or "Window"
-	local windowWidth = config.Width or 250
 	local headerHeight = 35
 	local padding = 15
+	local defaultInitialWidth = 200 -- Used only for initial centering math if no save exists
 	
 	-- Main Window Frame
 	local mainFrame = Instance.new("Frame")
 	mainFrame.Name = "MainWindow_" .. windowName
-	mainFrame.Size = UDim2.new(0, windowWidth, 0, headerHeight + padding)
+	mainFrame.Size = UDim2.new(0, defaultInitialWidth, 0, headerHeight + padding)
 	
-	-- Determine starting position (Saved vs Default)
 	if windowPositions[windowName] then
 		local saved = windowPositions[windowName]
 		mainFrame.Position = UDim2.new(saved.XScale, saved.XOffset, saved.YScale, saved.YOffset)
 	else
-		mainFrame.Position = UDim2.new(0.5, -windowWidth/2, 0.5, -50) -- Default center
+		mainFrame.Position = UDim2.new(0.5, -defaultInitialWidth/2, 0.5, -50)
 	end
 	
 	mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-	mainFrame.BackgroundTransparency = 0.8
+	mainFrame.BackgroundTransparency = 0.3
 	mainFrame.BorderSizePixel = 0
 	mainFrame.ClipsDescendants = true
 	mainFrame.Parent = screenGui
@@ -113,9 +110,10 @@ function Library:CreateWindow(config)
 	-- Content Frame Container
 	local contentContainer = Instance.new("Frame")
 	contentContainer.Name = "ContentContainer"
-	contentContainer.Size = UDim2.new(1, -30, 0, 0)
+	contentContainer.Size = UDim2.new(0, 0, 0, 0)
 	contentContainer.Position = UDim2.new(0, 15, 0, headerHeight + 10)
 	contentContainer.BackgroundTransparency = 1
+	contentContainer.AutomaticSize = Enum.AutomaticSize.XY -- Automatically maps size to children
 	contentContainer.Parent = mainFrame
 
 	local listLayout = Instance.new("UIListLayout")
@@ -123,22 +121,29 @@ function Library:CreateWindow(config)
 	listLayout.Padding = UDim.new(0, 8)
 	listLayout.Parent = contentContainer
 
-	-- Dynamic Height Handler
+	-- Dynamic Size Handler (Handles Width AND Length)
 	local isCollapsed = false
+	local currentDynamicWidth = defaultInitialWidth
 	local expandedSize = mainFrame.Size
-	local collapsedSize = UDim2.new(0, windowWidth, 0, headerHeight)
+	local collapsedSize = mainFrame.Size
 	local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
 
-	local function updateWindowHeight()
+	local function updateWindowSize()
+		local contentWidth = listLayout.AbsoluteContentSize.X
 		local contentHeight = listLayout.AbsoluteContentSize.Y
-		expandedSize = UDim2.new(0, windowWidth, 0, headerHeight + contentHeight + (padding * 2))
 		
-		if not isCollapsed then
-			TweenService:Create(mainFrame, TweenInfo.new(0.15), {Size = expandedSize}):Play()
-		end
+		-- Establish a minimum width so the header text and collapse button never squash together
+		local minimumWidth = 180
+		currentDynamicWidth = math.max(minimumWidth, contentWidth + (padding * 2))
+		
+		expandedSize = UDim2.new(0, currentDynamicWidth, 0, headerHeight + contentHeight + (padding * 2))
+		collapsedSize = UDim2.new(0, currentDynamicWidth, 0, headerHeight)
+		
+		local targetSize = isCollapsed and collapsedSize or expandedSize
+		TweenService:Create(mainFrame, TweenInfo.new(0.15), {Size = targetSize}):Play()
 	end
 
-	listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateWindowHeight)
+	listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateWindowSize)
 
 	-- Collapse Click Action
 	collapseBtn.MouseButton1Click:Connect(function()
@@ -161,7 +166,6 @@ function Library:CreateWindow(config)
 				if input.UserInputState == Enum.UserInputState.End then 
 					dragging = false 
 					
-					-- SAVE THE POSITION WHEN DRAGGING ENDS
 					windowPositions[windowName] = {
 						XScale = mainFrame.Position.X.Scale,
 						XOffset = mainFrame.Position.X.Offset,
@@ -195,15 +199,15 @@ function Library:CreateWindow(config)
 	function WindowInstance:AddLabel(id, initialText, textColor)
 		local textLine = Instance.new("TextLabel")
 		textLine.Name = id
-		textLine.Size = UDim2.new(1, 0, 0, 0)
-		textLine.AutomaticSize = Enum.AutomaticSize.Y
+		textLine.Size = UDim2.new(0, 0, 0, 0)
+		textLine.AutomaticSize = Enum.AutomaticSize.XY -- Auto-expand width & height natively
 		textLine.BackgroundTransparency = 1
 		textLine.Text = initialText
 		textLine.TextColor3 = textColor or Color3.fromRGB(220, 220, 220)
 		textLine.Font = Enum.Font.GothamMedium
 		textLine.TextSize = 18
 		textLine.TextXAlignment = Enum.TextXAlignment.Left
-		textLine.TextWrapped = true
+		textLine.TextWrapped = false -- False prevents accidental early wrapping so width can expand
 		textLine.Parent = contentContainer
 
 		elements[id] = textLine
